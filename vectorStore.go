@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -13,7 +11,6 @@ import (
 
 type VectorStore struct {
 	directoryStore map[string]*Directory
-	ollamaClient   *OllamaClient
 }
 
 func NewVectorStore() (*VectorStore, error) {
@@ -77,48 +74,21 @@ func (vc *VectorStore) createDirectory(directoryName string) error {
 	return nil
 }
 
-func (vc *VectorStore) query(directory string, query string, limit int) error {
-	inputs := make([]string, 0)
-	inputs = append(inputs, query)
-	response, err := vc.ollamaClient.embed(inputs)
-	if err != nil {
-		return err
+func (vc *VectorStore) query(directory string,query []float32, limit int) ([]string) {
+	neighborNodes:=vc.directoryStore[directory].query(query, limit)
+	neighbors:=make([]string,0)
+	for _,hnswNode:=range(neighborNodes){
+		neighbors=append(neighbors, hnswNode.Key)
 	}
 
-	responseDecoder := json.NewDecoder(response.Body)
-	var r EmbedResponsePayload
-	err = responseDecoder.Decode(&r)
-	if err != nil {
-		log.Printf("JSON decoding error: %v", err)
-		return fmt.Errorf("failed to decode JSON response: %v", err)
-	}
+	return neighbors
+}
 
-	log.Println(r.Embeddings)
-
-	vc.directoryStore[directory].query(r.Embeddings[0], limit)
+func (vc *VectorStore) insert(directory string,embedding []float32,key string) (error){
+	vc.directoryStore[directory].insert(key,embedding)
 	return nil
 }
 
-func (vc *VectorStore) embed(input string) ([][]float32, error) {
-	inputs := make([]string, 0)
-	inputs = append(inputs, input)
-
-	response, err := vc.ollamaClient.embed(inputs)
-	if err != nil {
-		return nil, err
-	}
-
-	responseDecoder := json.NewDecoder(response.Body)
-	var r EmbedResponsePayload
-	err = responseDecoder.Decode(&r)
-	if err != nil {
-		log.Printf("JSON decoding error: %v", err)
-		return nil, fmt.Errorf("failed to decode JSON response: %v", err)
-	}
-
-	log.Println(r.Embeddings)
-	return r.Embeddings, err
-}
 
 func (vc *VectorStore) lookup(directoryName string,key string) ([]float32,error) {
 	vector:=vc.directoryStore[directoryName].lookup(key);
@@ -127,3 +97,17 @@ func (vc *VectorStore) lookup(directoryName string,key string) ([]float32,error)
 	}
 	return vector,nil
 }
+
+func (vc *VectorStore) delete(directoryName string,key string) (bool,error) {
+	deleted:=vc.directoryStore[directoryName].delete(key);
+	if deleted==false{
+		return deleted,fmt.Errorf("key not present in the database")
+	}
+	return deleted,nil
+}
+
+func (vc *VectorStore) save(directoryName string) (error) {
+	err:=vc.directoryStore[directoryName].save()
+	return err
+}
+

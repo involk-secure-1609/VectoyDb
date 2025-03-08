@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type OllamaClient struct {
+type VectorClient struct {
 	BaseUrl    string
 	HttpClient *http.Client
 	model      string
@@ -19,24 +19,24 @@ type OllamaClient struct {
 // 	ollamaClientInstance *OllamaClient
 // )
 
-func NewOllamaClient(baseUrl string, model string) *OllamaClient {
+func NewVectorClient(baseUrl string, model string) *VectorClient {
 	// once.Do(func() {
 
-		httpClient := http.Client{
-			Timeout: 0,
-		}
-		ollamaClientInstance := &OllamaClient{
-			HttpClient: &httpClient,
-			BaseUrl:    baseUrl,
-			model:      model,
-		}
+	httpClient := http.Client{
+		Timeout: 0,
+	}
+	vectorClientInstance := &VectorClient{
+		HttpClient: &httpClient,
+		BaseUrl:    baseUrl,
+		model:      model,
+	}
 
 	// })
 
-	return ollamaClientInstance
+	return vectorClientInstance
 }
 
-func (client *OllamaClient) start() error {
+func (client *VectorClient) start() error {
 	isServerRunning := checkIfOllamaServerRunning(client.BaseUrl)
 	if !isServerRunning {
 		return fmt.Errorf("the ollama server has not started ")
@@ -44,7 +44,7 @@ func (client *OllamaClient) start() error {
 	return nil
 }
 
-func (client *OllamaClient) embed(inputs []string) (*http.Response, error) {
+func (client *VectorClient) embed(inputs []string) (*http.Response, error) {
 
 	requestPayload := EmbedRequestPayload{
 		Model: client.model,
@@ -55,7 +55,6 @@ func (client *OllamaClient) embed(inputs []string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	log.Println("JSON payload marshaled successfully")
 
 	// Log the request payload

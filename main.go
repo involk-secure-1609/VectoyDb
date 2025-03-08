@@ -6,8 +6,8 @@ import (
 )
 
 func main() {
-	ollamaClient := NewOllamaClient("localhost:11434", "mistral")
-	err:=ollamaClient.start()
+	vectorClient := NewVectorClient("localhost:11434", "mistral")
+	err:=vectorClient.start()
 	if err!=nil{
 		log.Println(err)
 		log.Println("To start the server, you can run:")
@@ -20,8 +20,8 @@ func main() {
 		log.Println(err)
 		return 
 	}
-	vectorStore.ollamaClient=ollamaClient
-
+	vectorDb:=NewVectorDb(vectorClient,vectorStore);
+	log.Println(vectorDb.vectorClient.model)
 	l,err:=net.Listen("tcp","localhost:8050")
 	if err!=nil{
 		log.Println(err)
