@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
-
 	"github.com/coder/hnsw"
-	"github.com/google/renameio"
 )
 
 
@@ -41,39 +38,15 @@ func (d *Directory) init() error{
 		}
 	}
 
-	go func(){
-		time.Sleep(1*time.Minute)
-		d.save()
-	}()
+	// go func(){
+	// 	time.Sleep(1*time.Minute)
+	// 	d.save()
+	// }()
 	d.directoryFile = directoryFile
 	return nil
 }
 
-func (d *Directory) save() error{
-	tmp, err := renameio.TempFile("", d.directoryFile.Name())
-	if err != nil {
-		return err
-	}
-	defer tmp.Cleanup()
 
-	wr := bufio.NewWriter(tmp)
-	err = d.graph.Export(wr)
-	if err != nil {
-		return fmt.Errorf("exporting: %w", err)
-	}
-
-	err = wr.Flush()
-	if err != nil {
-		return fmt.Errorf("flushing: %w", err)
-	}
-
-	err = tmp.CloseAtomicallyReplace()
-	if err != nil {
-		return fmt.Errorf("closing atomically: %w", err)
-	}
-
-	return nil
-}
 func (d *Directory) insert(key string,embedding []float32) {
 	d.graph.Add(hnsw.MakeNode(key,embedding))
 }

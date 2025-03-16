@@ -51,6 +51,6 @@ func (vectorDb *VectorDb) delete(directory string, key string) (bool, error) {
 	return deleted, nil
 }
 
-func (vectorDb *VectorDb) save(directory string) error {
-	return vectorDb.vectorStore.save(directory)
-}
+// func (vectorDb *VectorDb) save(directory string) error {
+// 	return vectorDb.vectorStore.save(directory)
+// }

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"math"
 	"math/rand"
+	"reflect"
 	"slices"
 	"time"
 )
@@ -62,6 +63,16 @@ var distanceFuncs = map[string]DistanceFunc{
 	"squareDistance": EuclideanDistSquare,
 }
 
+func distanceFuncToName(fn DistanceFunc) (string, bool) {
+	for name, f := range distanceFuncs {
+		fnptr := reflect.ValueOf(fn).Pointer()
+		fptr := reflect.ValueOf(f).Pointer()
+		if fptr == fnptr {
+			return name, true
+		}
+	}
+	return "", false
+}
 
 type searchCandidate[K cmp.Ordered] struct {
 	node *Node[K]
@@ -506,3 +517,5 @@ func (h *HNSWGraph[K]) Lookup(key K) (Embedding, bool) {
 	}
 	return node.Embed, ok
 }
+
+

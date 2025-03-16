@@ -106,8 +106,8 @@ func (vc *VectorStore) delete(directoryName string,key string) (bool,error) {
 	return deleted,nil
 }
 
-func (vc *VectorStore) save(directoryName string) (error) {
-	err:=vc.directoryStore[directoryName].save()
-	return err
-}
+// func (vc *VectorStore) save(directoryName string) (error) {
+// 	err:=vc.directoryStore[directoryName].save()
+// 	return err
+// }
 
