@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func NewGeminiClient() *GeminiClient{
 		Model: em,
 	}
 }
-func (geminiClient *GeminiClient) embed(key string) ([]float32,error){
+func (geminiClient *GeminiClient) Embed(key string) ([]float32,error){
 	ctx := context.Background()
 	res, err := geminiClient.Model.EmbedContent(ctx, genai.Text(key))
 	if err != nil {

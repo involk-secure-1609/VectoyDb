@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	// "github.com/google/renameio"
 )
 
 // errorEncoder is a helper type to encode multiple values
@@ -234,7 +233,7 @@ func (h *HNSWGraph[K]) Load(storeName string) error {
 		}
 
 		h.levels = make([]*level[K], nLayers)
-		for i := 0; i < nLayers; i++ {
+		for i := range nLayers {
 			var nNodes int
 			_, err = binaryRead(r, &nNodes)
 			if err != nil {

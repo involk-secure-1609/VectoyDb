@@ -1,19 +1,22 @@
-package main
+package db
 
-import "vectorDb/store"
+import (
+	"vectorDb/client"
+	"vectorDb/store"
+)
 
 type Db struct {
-	Client *GeminiClient
+	Client *client.GeminiClient
 	Store  store.Store
 }
 
-func NewVectorDb(client *GeminiClient, store store.Store) *Db {
-	return &Db{Client: client, Store: store}
+func NewVectorDb(client *client.GeminiClient) *Db {
+	return &Db{Client: client}
 }
 
 
 func (db *Db) Search(directory string, query string, limit int) ([]string, error) {
-	embedding, err := db.Client.embed(query)
+	embedding, err := db.Client.Embed(query)
 	if err != nil {
 		return []string{}, err
 	}
@@ -30,7 +33,7 @@ func (db *Db) Search(directory string, query string, limit int) ([]string, error
 }
 
 func (db *Db) Insert(directory string, key string) error {
-	embedding, err := db.Client.embed(key)
+	embedding, err := db.Client.Embed(key)
 	if err != nil {
 		return err
 	}
@@ -47,11 +50,21 @@ func (db *Db) Insert(directory string, key string) error {
 // }
 
 func (db *Db) Delete(directory string, key string) (bool, error) {
-	embedding, err := db.Client.embed(key)
+	embedding, err := db.Client.Embed(key)
 	if err != nil {
 		return false,err
 	}
 	deleted,err := db.Store.Delete(directory,Float32ToFloat64(embedding),key)
 	return deleted,err
+}
+
+func (db *Db) Save(storeName string) (error) {
+	err:=db.Save(storeName)
+	return err
+}
+
+func (db *Db) Load(storeName string) (error) {
+	err := db.Store.Load(storeName)
+	return err
 }
 
