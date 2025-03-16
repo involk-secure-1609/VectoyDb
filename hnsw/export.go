@@ -52,7 +52,6 @@ func binaryRead(r io.Reader, data interface{}) (int, error) {
 
 		*v = make([]float64, ln)
 		return binary.Size(*v), binary.Read(r, byteOrder, *v)
-
 	case io.ReaderFrom:
 		n, err := v.ReadFrom(r)
 		return int(n), err
@@ -129,7 +128,7 @@ const encodingVersion = 1
 // Export writes the graph to a writer.
 //
 // T must implement io.WriterTo.
-func (h *HNSWGraph[K]) Export(w io.Writer) error {
+func (h *HNSWGraph[K]) Save(w io.Writer) error {
 	distFuncName, ok := distanceFuncToName(h.Distance)
 	if !ok {
 		return fmt.Errorf("distance function %v must be registered with RegisterDistanceFunc", h.Distance)
@@ -176,7 +175,7 @@ func (h *HNSWGraph[K]) Export(w io.Writer) error {
 // T must implement io.ReaderFrom.
 // The imported graph does not have to match the exported graph's parameters (except for
 // dimensionality). The graph will converge onto the new parameters.
-func (h *HNSWGraph[K]) Import(r io.Reader) error {
+func (h *HNSWGraph[K]) Load(r io.Reader) error {
 	var (
 		version int
 		dist    string
@@ -287,7 +286,7 @@ func LoadSavedGraph[K cmp.Ordered](path string,distanceFunc string) (*SavedGraph
 
 	g := NewHNSWGraph[K](distanceFunc)
 	if info.Size() > 0 {
-		err = g.Import(bufio.NewReader(f))
+		err = g.Load(bufio.NewReader(f))
 		if err != nil {
 			return nil, fmt.Errorf("import: %w", err)
 		}
