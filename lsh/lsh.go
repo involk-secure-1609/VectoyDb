@@ -205,6 +205,56 @@ func (lsh *CosineLsh) Insert(point []float64, extraData string) {
 	wg.Wait() // Wait for all goroutines to complete before returning.
 }
 
+// Delete removes a new data point from the Cosine LSH index.
+// point is the data point (vector) to be removed.
+// extraData is any additional data which is stored with the point.
+func (lsh *CosineLsh) Delete(point []float64, extraData string) {
+	// Apply hash functions to generate hash keys for the point in each hash table.
+	hvs := lsh.toBasicHashTableKeys(lsh.hash(point))
+	var wg sync.WaitGroup         // WaitGroup to manage concurrent insertions into hash tables.
+	wg.Add(len(lsh.tables))     // Increment WaitGroup counter by the number of hash tables.
+	for i := range lsh.tables { // Iterate through each hash table.
+		hv := hvs[i]                          // Get the hash key for the current hash table.
+		table := lsh.tables[i]              // Get the current hash table.
+		go func(table hashTable, hv uint64, point []float64, extraData string) { // Launch a goroutine for concurrent deletion.
+			defer wg.Done() // Decrement WaitGroup counter when the goroutine finishes.
+		
+			// Check if a bucket exists for this hash key in the table.
+			if _, exist := table[hv]; !exist {
+				return
+			}
+			
+			// Find and remove the matching point
+			var newBucket []Point
+			for _, p := range table[hv] {
+				// Skip points that match both vector and extraData (effectively deleting them)
+				if vectorsEqual(p.Vector, point) && p.ExtraData == extraData {
+					continue
+				}
+				// Keep all other points
+				newBucket = append(newBucket, p)
+			}
+			
+			// Replace the bucket with the filtered version
+			table[hv] = newBucket
+		}(table, hv, point, extraData)
+	}
+	wg.Wait() // Wait for all goroutines to complete before returning.
+}
+
+// Helper function to check if two vectors are equal
+func vectorsEqual(a, b []float64) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for i := range a {
+        if a[i] != b[i] {
+            return false
+        }
+    }
+    return true
+}
+
 // Query finds the approximate nearest neighbors of a query point.
 // q is the query point (vector).
 // maxResult is the maximum number of results to return (if > 0, returns top 'maxResult' nearest neighbours).

@@ -128,12 +128,18 @@ const encodingVersion = 1
 // Export writes the graph to a writer.
 //
 // T must implement io.WriterTo.
-func (h *HNSWGraph[K]) Save(w io.Writer) error {
+func (h *HNSWGraph[K]) Save(storeName string) error {
+	f, err := os.OpenFile(storeName+"_hnsw"+".store", os.O_RDWR|os.O_CREATE, 0o600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	w := bufio.NewWriter(f)
 	distFuncName, ok := distanceFuncToName(h.Distance)
 	if !ok {
 		return fmt.Errorf("distance function %v must be registered with RegisterDistanceFunc", h.Distance)
 	}
-	_, err := multiBinaryWrite(
+	_, err = multiBinaryWrite(
 		w,
 		encodingVersion,
 		h.M,
@@ -167,7 +173,14 @@ func (h *HNSWGraph[K]) Save(w io.Writer) error {
 			}
 		}
 	}
-
+	err=w.Flush()
+	if err!=nil{
+		return err
+	}
+	err=f.Sync()
+	if err!=nil{
+		return err
+	}
 	return nil
 }
 
@@ -175,83 +188,98 @@ func (h *HNSWGraph[K]) Save(w io.Writer) error {
 // T must implement io.ReaderFrom.
 // The imported graph does not have to match the exported graph's parameters (except for
 // dimensionality). The graph will converge onto the new parameters.
-func (h *HNSWGraph[K]) Load(r io.Reader) error {
-	var (
-		version int
-		dist    string
-	)
-	_, err := multiBinaryRead(r, &version, &h.M, &h.Ml, &h.EfSearch,
-		&dist,
-	)
+func (h *HNSWGraph[K]) Load(storeName string) error {
+
+	// r:=bufio.NewReader()
+
+	f, err := os.OpenFile(storeName+"_hnsw"+".store", os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
 	}
-
-	var ok bool
-	h.Distance, ok = distanceFuncs[dist]
-	if !ok {
-		return fmt.Errorf("unknown distance function %q", dist)
-	}
-	if h.Rng == nil {
-		h.Rng = defaultRand()
-	}
-
-	if version != encodingVersion {
-		return fmt.Errorf("incompatible encoding version: %d", version)
-	}
-
-	var nLayers int
-	_, err = binaryRead(r, &nLayers)
+	defer f.Close()
+	info, err := f.Stat()
 	if err != nil {
 		return err
 	}
-
-	h.levels = make([]*level[K], nLayers)
-	for i := 0; i < nLayers; i++ {
-		var nNodes int
-		_, err = binaryRead(r, &nNodes)
+	if (info.Size() > 0) {
+		r := bufio.NewReader(f)
+		var (
+			version int
+			dist    string
+		)
+		_, err = multiBinaryRead(r, &version, &h.M, &h.Ml, &h.EfSearch,
+			&dist,
+		)
 		if err != nil {
 			return err
 		}
 
-		nodes := make(map[K]*Node[K], nNodes)
-		for j := 0; j < nNodes; j++ {
-			var key K
-			var embed Embedding
-			var nNeighbors int
-			_, err = multiBinaryRead(r, &key, &embed, &nNeighbors)
+		var ok bool
+		h.Distance, ok = distanceFuncs[dist]
+		if !ok {
+			return fmt.Errorf("unknown distance function %q", dist)
+		}
+		if h.Rng == nil {
+			h.Rng = defaultRand()
+		}
+
+		if version != encodingVersion {
+			return fmt.Errorf("incompatible encoding version: %d", version)
+		}
+
+		var nLayers int
+		_, err = binaryRead(r, &nLayers)
+		if err != nil {
+			return err
+		}
+
+		h.levels = make([]*level[K], nLayers)
+		for i := 0; i < nLayers; i++ {
+			var nNodes int
+			_, err = binaryRead(r, &nNodes)
 			if err != nil {
-				return fmt.Errorf("decoding node %d: %w", j, err)
+				return err
 			}
 
-			neighbours := make([]K, nNeighbors)
-			for k := 0; k < nNeighbors; k++ {
-				var neighbor K
-				_, err = binaryRead(r, &neighbor)
+			nodes := make(map[K]*Node[K], nNodes)
+			for j := 0; j < nNodes; j++ {
+				var key K
+				var embed Embedding
+				var nNeighbors int
+				_, err = multiBinaryRead(r, &key, &embed, &nNeighbors)
 				if err != nil {
-					return fmt.Errorf("decoding neighbor %d for node %d: %w", k, j, err)
+					return fmt.Errorf("decoding node %d: %w", j, err)
 				}
-				neighbours[k] = neighbor
-			}
 
-			node := &Node[K]{
-				Key:       key,
-				Embed:     embed,
-				neighbours: make(map[K]*Node[K]),
-			}
+				neighbours := make([]K, nNeighbors)
+				for k := 0; k < nNeighbors; k++ {
+					var neighbor K
+					_, err = binaryRead(r, &neighbor)
+					if err != nil {
+						return fmt.Errorf("decoding neighbor %d for node %d: %w", k, j, err)
+					}
+					neighbours[k] = neighbor
+				}
 
-			nodes[key] = node
-			for _, neighbour := range neighbours {
-				node.neighbours[neighbour] = nil
+				node := &Node[K]{
+					Key:        key,
+					Embed:      embed,
+					neighbours: make(map[K]*Node[K]),
+				}
+
+				nodes[key] = node
+				for _, neighbour := range neighbours {
+					node.neighbours[neighbour] = nil
+				}
 			}
-		}
-		// Fill in neighbor pointers
-		for _, node := range nodes {
-			for key := range node.neighbours {
-				node.neighbours[key] = nodes[key]
+			// Fill in neighbor pointers
+			for _, node := range nodes {
+				for key := range node.neighbours {
+					node.neighbours[key] = nodes[key]
+				}
 			}
+			h.levels[i] = &level[K]{nodes: nodes}
 		}
-		h.levels[i] = &level[K]{nodes: nodes}
 	}
 
 	return nil
@@ -273,27 +301,27 @@ type SavedGraph[K cmp.Ordered] struct {
 //
 // It does not hold open a file descriptor, so SavedGraph can be forgotten
 // without ever calling Save.
-func LoadSavedGraph[K cmp.Ordered](path string,distanceFunc string) (*SavedGraph[K], error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
+// func LoadSavedGraph[K cmp.Ordered](path string, distanceFunc string) (*SavedGraph[K], error) {
+// 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer f.Close()
+// 	info, err := f.Stat()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	g := NewHNSWGraph[K](distanceFunc)
-	if info.Size() > 0 {
-		err = g.Load(bufio.NewReader(f))
-		if err != nil {
-			return nil, fmt.Errorf("import: %w", err)
-		}
-	}
+// 	g := NewHNSWGraph[K](distanceFunc)
+// 	if info.Size() > 0 {
+// 		err = g.Load(bufio.NewReader(f))
+// 		if err != nil {
+// 			return nil, fmt.Errorf("import: %w", err)
+// 		}
+// 	}
 
-	return &SavedGraph[K]{HNSWGraph: g, Path: path}, nil
-}
+// 	return &SavedGraph[K]{HNSWGraph: g, Path: path}, nil
+// }
 
 // // Save writes the graph to the file.
 // func (g *SavedGraph[K]) Save() error {

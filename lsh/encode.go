@@ -11,14 +11,14 @@ import (
 // var byteOrder=binary.LittleEndian
 
 // encode serializes the CosineLsh index to a file
-func (lsh *CosineLsh) Save(filename string) error {
-	file, err := os.Create(filename)
+func (lsh *CosineLsh) Save(storeName string) error {
+	f, err := os.OpenFile(storeName+"_lsh"+".store", os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 	var byteOrder = binary.LittleEndian
-	writer := bufio.NewWriter(file)
+	writer := bufio.NewWriter(f)
 
 	// Write scalar fields
 	if err := binary.Write(writer, byteOrder, lsh.dim); err != nil {
@@ -123,8 +123,11 @@ func (lsh *CosineLsh) Save(filename string) error {
 			}
 		}
 	}
-	writer.Flush()
-	err = file.Sync()
+	err=writer.Flush()
+	if err!=nil{
+		return err
+	}
+	err = f.Sync()
 	if err != nil {
 		return nil
 	}

@@ -1,56 +1,57 @@
 package main
 
-type VectorDb struct {
-	vectorClient *VectorClient
-	vectorStore  *VectorStore
+import "vectorDb/store"
+
+type Db struct {
+	Client *GeminiClient
+	Store  store.Store
 }
 
-func NewVectorDb(vectorClient *VectorClient, vectorStore *VectorStore) *VectorDb {
-	return &VectorDb{vectorClient: vectorClient, vectorStore: vectorStore}
+func NewVectorDb(client *GeminiClient, store store.Store) *Db {
+	return &Db{Client: client, Store: store}
 }
 
-func (vectorDb *VectorDb) query(directory string, query string, limit int) ([]string, error) {
-	embedding, err := embeddingResponseProcessor(vectorDb.vectorClient.embed([]string{query}))
+
+func (db *Db) Search(directory string, query string, limit int) ([]string, error) {
+	embedding, err := db.Client.embed(query)
 	if err != nil {
 		return []string{}, err
 	}
 	if limit == -1 {
 		limit = 3
 	}
-	queryResult := vectorDb.vectorStore.query(directory, embedding, limit)
+	queryResult,err := db.Store.Search(directory,Float32ToFloat64(embedding),limit)
+	if err!=nil{
+		return nil,err
+	}
 
 	return queryResult, nil
 
 }
 
-func (vectorDb *VectorDb) insert(directory string, key string) error {
-	embedding, err := embeddingResponseProcessor(vectorDb.vectorClient.embed([]string{key}))
+func (db *Db) Insert(directory string, key string) error {
+	embedding, err := db.Client.embed(key)
 	if err != nil {
 		return err
 	}
-	err = vectorDb.vectorStore.insert(directory, embedding, key)
-	if err != nil {
-		return err
-	}
-	return nil
+	err = db.Store.Insert(directory,Float32ToFloat64(embedding),key)
+	return err
 }
 
-func (vectorDb *VectorDb) lookup(directory string, key string) ([]float32, error) {
-	embedding, err := vectorDb.vectorStore.lookup(directory, key)
-	if err != nil {
-		return []float32{}, err
-	}
-	return embedding, nil
-}
-
-func (vectorDb *VectorDb) delete(directory string, key string) (bool, error) {
-	deleted, err := vectorDb.vectorStore.delete(directory, key)
-	if err != nil {
-		return deleted, err
-	}
-	return deleted, nil
-}
-
-// func (vectorDb *VectorDb) save(directory string) error {
-// 	return vectorDb.vectorStore.save(directory)
+// func (db *Db) Loo(directory string, key string) ([]float32, error) {
+// 	embedding, err := db.vectorStore.lookup(directory, key)
+// 	if err != nil {
+// 		return []float32{}, err
+// 	}
+// 	return embedding, nil
 // }
+
+func (db *Db) Delete(directory string, key string) (bool, error) {
+	embedding, err := db.Client.embed(key)
+	if err != nil {
+		return false,err
+	}
+	deleted,err := db.Store.Delete(directory,Float32ToFloat64(embedding),key)
+	return deleted,err
+}
+
