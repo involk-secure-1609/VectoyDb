@@ -26,18 +26,17 @@ var rootCmd = &cobra.Command{
 var commands = map[string]func([]string){
 	"help": func(args []string) {
 		fmt.Println("Available commands:")
-		fmt.Println("  help    - Show this help")
+		fmt.Println(" help    - Show this help")
+		fmt.Println(" use storeName indexType -creates a database with either lsh or hnsw as the underlying data structure")
+		fmt.Println(" search storeName key -searches for the key in the database")
+		fmt.Println(" save storename -saves the database to disk")
+		fmt.Println("  exit    - Exit the application")
+
 		fmt.Println("  version - Show version information")
-		fmt.Println("  build   - Build the site")
 		fmt.Println("  exit    - Exit the application")
 	},
 	"version": func(args []string) {
-		fmt.Println("Hugo version 1.0")
-	},
-	"build": func(args []string) {
-		fmt.Println("Building site...")
-		// Implement your build logic here
-		fmt.Println("Site built successfully!")
+		fmt.Println("VectoyDb version 1.0")
 	},
 	"exit": func(args []string) {
 		fmt.Println("Goodbye!")
@@ -116,7 +115,7 @@ var commands = map[string]func([]string){
 
 func runInteractiveMode() {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Welcome to Hugo Interactive Mode!")
+	fmt.Println("Welcome to VectoyDb")
 	fmt.Println("Type 'help' for available commands or 'exit' to quit.")
 
 	for {
