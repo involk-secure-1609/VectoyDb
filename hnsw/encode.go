@@ -1,19 +1,19 @@
 package hnsw
 
 import (
-	"bufio"
 	"cmp"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"os"
+	"log"
+	"reflect"
 )
 
 // errorEncoder is a helper type to encode multiple values
 
 var byteOrder = binary.LittleEndian
 
-func binaryRead(r io.Reader, data interface{}) (int, error) {
+func binaryRead(r io.Reader, data any) (int, error) {
 	switch v := data.(type) {
 	case *int:
 		br, ok := r.(io.ByteReader)
@@ -42,7 +42,7 @@ func binaryRead(r io.Reader, data interface{}) (int, error) {
 		*v = string(s)
 		return len(s), err
 
-	case *[]float64:
+	case *Embedding:
 		var ln int
 		_, err := binaryRead(r, &ln)
 		if err != nil {
@@ -61,6 +61,7 @@ func binaryRead(r io.Reader, data interface{}) (int, error) {
 }
 
 func binaryWrite(w io.Writer, data any) (int, error) {
+	
 	switch v := data.(type) {
 	case int:
 		var buf [binary.MaxVarintLen64]byte
@@ -81,14 +82,18 @@ func binaryWrite(w io.Writer, data any) (int, error) {
 		}
 
 		return n + n2, nil
-	case []float64:
+	case Embedding:
 		n, err := binaryWrite(w, len(v))
 		if err != nil {
 			return n, err
 		}
+		log.Println("INSIDE WRITING float")
 		return n + binary.Size(v), binary.Write(w, byteOrder, v)
 
 	default:
+		log.Println("Printing v",v)
+		t := reflect.TypeOf(data)
+		log.Println(t)
 		sz := binary.Size(data)
 		err := binary.Write(w, byteOrder, data)
 		if err != nil {
@@ -101,7 +106,9 @@ func binaryWrite(w io.Writer, data any) (int, error) {
 func multiBinaryWrite(w io.Writer, data ...any) (int, error) {
 	var written int
 	for _, d := range data {
+		log.Println(d)
 		n, err := binaryWrite(w, d)
+		log.Println(n)
 		written += n
 		if err != nil {
 			return written, err
@@ -124,165 +131,6 @@ func multiBinaryRead(r io.Reader, data ...any) (int, error) {
 
 const encodingVersion = 1
 
-// Export writes the graph to a writer.
-//
-// T must implement io.WriterTo.
-func (h *HNSWGraph[K]) Save(storeName string) error {
-	f, err := os.OpenFile(storeName+"_hnsw"+".store", os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	w := bufio.NewWriter(f)
-	distFuncName, ok := distanceFuncToName(h.Distance)
-	if !ok {
-		return fmt.Errorf("distance function %v must be registered with RegisterDistanceFunc", h.Distance)
-	}
-	_, err = multiBinaryWrite(
-		w,
-		encodingVersion,
-		h.M,
-		h.Ml,
-		h.EfSearch,
-		distFuncName,
-	)
-	if err != nil {
-		return fmt.Errorf("encode parameters: %w", err)
-	}
-	_, err = binaryWrite(w, len(h.levels))
-	if err != nil {
-		return fmt.Errorf("encode number of layers: %w", err)
-	}
-	for _, level := range h.levels {
-		_, err = binaryWrite(w, len(level.nodes))
-		if err != nil {
-			return fmt.Errorf("encode number of nodes: %w", err)
-		}
-		for _, node := range level.nodes {
-			_, err = multiBinaryWrite(w, node.Key, node.Embed, len(node.neighbours))
-			if err != nil {
-				return fmt.Errorf("encode node data: %w", err)
-			}
-
-			for neighbor := range node.neighbours {
-				_, err = binaryWrite(w, neighbor)
-				if err != nil {
-					return fmt.Errorf("encode neighbor %v: %w", neighbor, err)
-				}
-			}
-		}
-	}
-	err=w.Flush()
-	if err!=nil{
-		return err
-	}
-	err=f.Sync()
-	if err!=nil{
-		return err
-	}
-	return nil
-}
-
-// Import reads the graph from a reader.
-// T must implement io.ReaderFrom.
-// The imported graph does not have to match the exported graph's parameters (except for
-// dimensionality). The graph will converge onto the new parameters.
-func (h *HNSWGraph[K]) Load(storeName string) error {
-
-	// r:=bufio.NewReader()
-
-	f, err := os.OpenFile(storeName+"_hnsw"+".store", os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	if (info.Size() > 0) {
-		r := bufio.NewReader(f)
-		var (
-			version int
-			dist    string
-		)
-		_, err = multiBinaryRead(r, &version, &h.M, &h.Ml, &h.EfSearch,
-			&dist,
-		)
-		if err != nil {
-			return err
-		}
-
-		var ok bool
-		h.Distance, ok = distanceFuncs[dist]
-		if !ok {
-			return fmt.Errorf("unknown distance function %q", dist)
-		}
-		if h.Rng == nil {
-			h.Rng = defaultRand()
-		}
-
-		if version != encodingVersion {
-			return fmt.Errorf("incompatible encoding version: %d", version)
-		}
-
-		var nLayers int
-		_, err = binaryRead(r, &nLayers)
-		if err != nil {
-			return err
-		}
-
-		h.levels = make([]*level[K], nLayers)
-		for i := range nLayers {
-			var nNodes int
-			_, err = binaryRead(r, &nNodes)
-			if err != nil {
-				return err
-			}
-
-			nodes := make(map[K]*Node[K], nNodes)
-			for j := 0; j < nNodes; j++ {
-				var key K
-				var embed Embedding
-				var nNeighbors int
-				_, err = multiBinaryRead(r, &key, &embed, &nNeighbors)
-				if err != nil {
-					return fmt.Errorf("decoding node %d: %w", j, err)
-				}
-
-				neighbours := make([]K, nNeighbors)
-				for k := 0; k < nNeighbors; k++ {
-					var neighbor K
-					_, err = binaryRead(r, &neighbor)
-					if err != nil {
-						return fmt.Errorf("decoding neighbor %d for node %d: %w", k, j, err)
-					}
-					neighbours[k] = neighbor
-				}
-
-				node := &Node[K]{
-					Key:        key,
-					Embed:      embed,
-					neighbours: make(map[K]*Node[K]),
-				}
-
-				nodes[key] = node
-				for _, neighbour := range neighbours {
-					node.neighbours[neighbour] = nil
-				}
-			}
-			// Fill in neighbor pointers
-			for _, node := range nodes {
-				for key := range node.neighbours {
-					node.neighbours[key] = nodes[key]
-				}
-			}
-			h.levels[i] = &level[K]{nodes: nodes}
-		}
-	}
-
-	return nil
-}
 
 // SavedGraph is a wrapper around a graph that persists
 // changes to a file upon calls to Save. It is more convenient
