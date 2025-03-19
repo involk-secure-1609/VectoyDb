@@ -123,8 +123,8 @@ func (lsh *CosineLsh) Save(storeName string) error {
 			}
 		}
 	}
-	err=writer.Flush()
-	if err!=nil{
+	err = writer.Flush()
+	if err != nil {
 		return err
 	}
 	err = f.Sync()
@@ -136,122 +136,128 @@ func (lsh *CosineLsh) Save(storeName string) error {
 
 // decode deserializes the CosineLsh index from a file
 func (lsh *CosineLsh) Load(filename string) error {
-	file, err := os.Open(filename)
+	file, err := os.OpenFile(filename+"_lsh"+".store", os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	var byteOrder = binary.LittleEndian
-	reader := bufio.NewReader(file)
-
-	// Read scalar fields
-	if err := binary.Read(reader, byteOrder, &lsh.dim); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, byteOrder, &lsh.l); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, byteOrder, &lsh.m); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, byteOrder, &lsh.h); err != nil {
-		return err
-	}
-
-	// Read dFunc string
-	dFunc, err := readString(reader)
+	info, err := file.Stat()
 	if err != nil {
 		return err
 	}
-	lsh.dFunc = dFunc
+	if info.Size() > 0 {
+		var byteOrder = binary.LittleEndian
+		reader := bufio.NewReader(file)
 
-	// Read hyperplanes
-	var rows, cols int32
-	if err := binary.Read(reader, byteOrder, &rows); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, byteOrder, &cols); err != nil {
-		return err
-	}
-
-	// Initialize and fill hyperplanes
-	lsh.hyperplanes = make([][]float64, rows)
-	for i := int32(0); i < rows; i++ {
-		lsh.hyperplanes[i] = make([]float64, cols)
-		for j := int32(0); j < cols; j++ {
-			if err := binary.Read(reader, byteOrder, &lsh.hyperplanes[i][j]); err != nil {
-				return err
-			}
+		// Read scalar fields
+		if err := binary.Read(reader, byteOrder, &lsh.dim); err != nil {
+			return err
 		}
-	}
-
-	// Read nextId
-	if err := binary.Read(reader, byteOrder, &lsh.nextID); err != nil {
-		return err
-	}
-
-	// Read tables
-	var numTables int32
-	if err := binary.Read(reader, byteOrder, &numTables); err != nil {
-		return err
-	}
-
-	// Initialize tables
-	lsh.tables = make([]hashTable, numTables)
-
-	// Read each table
-	for i := int32(0); i < numTables; i++ {
-		var numEntries int32
-		if err := binary.Read(reader, byteOrder, &numEntries); err != nil {
+		if err := binary.Read(reader, byteOrder, &lsh.l); err != nil {
+			return err
+		}
+		if err := binary.Read(reader, byteOrder, &lsh.m); err != nil {
+			return err
+		}
+		if err := binary.Read(reader, byteOrder, &lsh.h); err != nil {
 			return err
 		}
 
-		lsh.tables[i] = make(hashTable)
+		// Read dFunc string
+		dFunc, err := readString(reader)
+		if err != nil {
+			return err
+		}
+		lsh.dFunc = dFunc
 
-		// Read each key-value pair
-		for j := int32(0); j < numEntries; j++ {
-			var key uint64
-			if err := binary.Read(reader, byteOrder, &key); err != nil {
+		// Read hyperplanes
+		var rows, cols int32
+		if err := binary.Read(reader, byteOrder, &rows); err != nil {
+			return err
+		}
+		if err := binary.Read(reader, byteOrder, &cols); err != nil {
+			return err
+		}
+
+		// Initialize and fill hyperplanes
+		lsh.hyperplanes = make([][]float64, rows)
+		for i := int32(0); i < rows; i++ {
+			lsh.hyperplanes[i] = make([]float64, cols)
+			for j := int32(0); j < cols; j++ {
+				if err := binary.Read(reader, byteOrder, &lsh.hyperplanes[i][j]); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Read nextId
+		if err := binary.Read(reader, byteOrder, &lsh.nextID); err != nil {
+			return err
+		}
+
+		// Read tables
+		var numTables int32
+		if err := binary.Read(reader, byteOrder, &numTables); err != nil {
+			return err
+		}
+
+		// Initialize tables
+		lsh.tables = make([]hashTable, numTables)
+
+		// Read each table
+		for i := int32(0); i < numTables; i++ {
+			var numEntries int32
+			if err := binary.Read(reader, byteOrder, &numEntries); err != nil {
 				return err
 			}
 
-			var numPoints int32
-			if err := binary.Read(reader, byteOrder, &numPoints); err != nil {
-				return err
-			}
+			lsh.tables[i] = make(hashTable)
 
-			points := make([]Point, numPoints)
-
-			// Read each point
-			for k := int32(0); k < numPoints; k++ {
-				// Read point ID
-				if err := binary.Read(reader, byteOrder, &points[k].ID); err != nil {
+			// Read each key-value pair
+			for j := int32(0); j < numEntries; j++ {
+				var key uint64
+				if err := binary.Read(reader, byteOrder, &key); err != nil {
 					return err
 				}
 
-				// Read vector length
-				var vectorLen int32
-				if err := binary.Read(reader, byteOrder, &vectorLen); err != nil {
+				var numPoints int32
+				if err := binary.Read(reader, byteOrder, &numPoints); err != nil {
 					return err
 				}
 
-				// Initialize and fill vector
-				points[k].Vector = make([]float64, vectorLen)
-				for v := int32(0); v < vectorLen; v++ {
-					if err := binary.Read(reader, byteOrder, &points[k].Vector[v]); err != nil {
+				points := make([]Point, numPoints)
+
+				// Read each point
+				for k := int32(0); k < numPoints; k++ {
+					// Read point ID
+					if err := binary.Read(reader, byteOrder, &points[k].ID); err != nil {
 						return err
 					}
+
+					// Read vector length
+					var vectorLen int32
+					if err := binary.Read(reader, byteOrder, &vectorLen); err != nil {
+						return err
+					}
+
+					// Initialize and fill vector
+					points[k].Vector = make([]float64, vectorLen)
+					for v := int32(0); v < vectorLen; v++ {
+						if err := binary.Read(reader, byteOrder, &points[k].Vector[v]); err != nil {
+							return err
+						}
+					}
+
+					// Read extra data
+					extraData, err := readString(reader)
+					if err != nil {
+						return err
+					}
+					points[k].ExtraData = extraData
 				}
 
-				// Read extra data
-				extraData, err := readString(reader)
-				if err != nil {
-					return err
-				}
-				points[k].ExtraData = extraData
+				lsh.tables[i][key] = points
 			}
-
-			lsh.tables[i][key] = points
 		}
 	}
 

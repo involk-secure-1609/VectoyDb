@@ -242,6 +242,29 @@ func (lsh *CosineLsh) Delete(point []float64, extraData string) {
 	wg.Wait() // Wait for all goroutines to complete before returning.
 }
 
+
+func (lsh *CosineLsh) Lookup(point []float64, extraData string) (bool) {
+	// Apply hash functions to generate hash keys for the point in each hash table.
+	hvs := lsh.toBasicHashTableKeys(lsh.hash(point))
+	for i := range lsh.tables { // Iterate through each hash table.
+		hv := hvs[i]                          // Get the hash key for the current hash table.
+		table := lsh.tables[i]              // Get the current hash table.
+		
+			// Check if a bucket exists for this hash key in the table.
+			if _, exist := table[hv]; !exist {
+				continue 
+			}
+			for _, p := range table[hv] {
+				
+				if vectorsEqual(p.Vector, point) && p.ExtraData == extraData {
+					return true
+				}
+			}
+	}
+	return false
+}
+
+
 // Helper function to check if two vectors are equal
 func vectorsEqual(a, b []float64) bool {
     if len(a) != len(b) {

@@ -68,8 +68,3 @@ func (hnswStore *HnswStore) Save(storeName string) (error) {
 }
 
 
-// func (hnswStore *VectorStore) save(directoryName string) (error) {
-// 	err:=hnswStore.directoryStore[directoryName].save()
-// 	return err
-// }
-

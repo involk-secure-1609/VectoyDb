@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"math/rand/v2"
 	"os"
 	"testing"
 	"vectorDb/hnsw"
@@ -9,13 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func generateRandomFloat64Array(n int) []float64 {
-	arr := make([]float64, n)
-	for i := range n {
-		arr[i] = rand.Float64() // Generate random float64 between 0.0 and 1.0
-	}
-	return arr
-}
 
 // Tests the Dims and Len function
 func TestHNSWInsertDimLen(t *testing.T) {
