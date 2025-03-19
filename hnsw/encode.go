@@ -49,7 +49,7 @@ func binaryRead(r io.Reader, data any) (int, error) {
 			return 0, err
 		}
 
-		*v = make([]float64, ln)
+		*v = make([]float32, ln)
 		return binary.Size(*v), binary.Read(r, byteOrder, *v)
 	case io.ReaderFrom:
 		n, err := v.ReadFrom(r)

@@ -10,7 +10,7 @@ import (
 
 // hyperplanes represents a collection of hyperplanes.
 // Each hyperplane is a vector in the same dimensional space as the input data points.
-type hyperplanes [][]float64
+type hyperplanes [][]float32
 
 // Key is a way to index into a table. In this context, it's a binary hash key
 // represented as a slice of uint8 (0 or 1).
@@ -19,7 +19,7 @@ type hashTableKey []uint8
 // Point represents an abstract point in n-dimensional space.
 // It contains the vector itself, any extra data associated with the point, and a unique ID.
 type Point struct {
-	Vector    []float64 // The vector representing the point in n-dimensional space.
+	Vector    []float32 // The vector representing the point in n-dimensional space.
 	ExtraData string    // Optional extra data associated with the point.
 	ID        uint64    // Unique identifier for the point.
 }
@@ -28,18 +28,18 @@ type Point struct {
 // It includes the Point itself and the calculated distance to the query point.
 type QueryResult struct {
 	Point            // The Point that is a query result.
-	Distance float64 // The distance between the query point and this Point.
+	Distance float32 // The distance between the query point and this Point.
 }
 
 // NewHyperplanes generates and initializes a set of d hyperplanes with s dimensions.
 // d is the number of hyperplanes to generate.
 // s is the number of dimensions each hyperplane will have (same as input data points).
 func newHyperplanes(d, s int32) hyperplanes {
-	hs := make([][]float64, d) // Create a slice of slices to hold 'd' hyperplanes.
+	hs := make([][]float32, d) // Create a slice of slices to hold 'd' hyperplanes.
 	for i := range d {
-		v := make([]float64, s) // Each hyperplane is a vector of 's' dimensions.
+		v := make([]float32, s) // Each hyperplane is a vector of 's' dimensions.
 		for j := range s {
-			n := rand.NormFloat64() // Generate a random number from a normal (Gaussian) distribution.
+			n := rand.Float32() // Generate a random number from a normal (Gaussian) distribution.
 			v[j] = n                // Assign this random number as a coordinate in the hyperplane vector.
 		}
 		hs[i] = v // Add the generated hyperplane vector to the set of hyperplanes.
@@ -49,11 +49,11 @@ func newHyperplanes(d, s int32) hyperplanes {
 
 // DistanceFunc is a function type for calculating the distance between two vectors.
 // It takes two float64 slices (representing vectors) and returns a float64 (the distance).
-type DistanceFunc func(p1 []float64, p2 []float64) float64
+type DistanceFunc func(p1 []float32, p2 []float32) float32
 
 // euclideanDistSquare calculates the squared Euclidean distance between two vectors.
 // It's computationally cheaper than Euclidean distance and often sufficient for comparisons.
-func euclideanDistSquare(p1 []float64, p2 []float64) (sum float64) {
+func euclideanDistSquare(p1 []float32, p2 []float32) (sum float32) {
 	for i := range p1 {
 		d := p2[i] - p1[i] // Calculate the difference between corresponding coordinates.
 		sum += d * d       // Square the difference and add to the sum.
@@ -84,7 +84,7 @@ type simhash struct {
 // newSimhash generates the simhash of an attribute (a vector) using the hyperplanes.
 // hs: The set of hyperplanes to use.
 // e: The input vector for which to generate the simhash.
-func newSimhash(hs hyperplanes, e []float64) *simhash {
+func newSimhash(hs hyperplanes, e []float32) *simhash {
 	sig := newSignature(hs, e) // Generate the signature using the hyperplanes and input vector.
 	return &simhash{
 		sig: sig, // Create and return a simhash struct with the generated signature.
@@ -94,12 +94,12 @@ func newSimhash(hs hyperplanes, e []float64) *simhash {
 // newSignature computes the signature for a simhash of input float array.
 // hyperplanes: The set of hyperplanes.
 // e: The input vector.
-func newSignature(hyperplanes hyperplanes, e []float64) signature {
+func newSignature(hyperplanes hyperplanes, e []float32) signature {
 	sigarr := make([]uint8, len(hyperplanes)) // Initialize a slice to store the signature bits (0 or 1).
 	for hix, h := range hyperplanes {         // Iterate through each hyperplane.
-		var dp float64        // Initialize a variable to store the dot product.
+		var dp float32        // Initialize a variable to store the dot product.
 		for k, v := range e { // Calculate the dot product of the hyperplane and the input vector.
-			dp += h[k] * float64(v) // Multiply corresponding coordinates and sum them up.
+			dp += h[k] * float32(v) // Multiply corresponding coordinates and sum them up.
 		}
 		if dp >= 0 { // If the dot product is non-negative, the point is on one side of the hyperplane.
 			sigarr[hix] = uint8(1) // Assign 1 to the signature bit.
@@ -112,7 +112,7 @@ func newSignature(hyperplanes hyperplanes, e []float64) signature {
 
 // Hash returns all combined hash values for all hash tables.
 // For each hash table, it generates a hash key based on the simhash and LSH parameters.
-func (clsh *cosineLshParam) hash(point []float64) []hashTableKey {
+func (clsh *cosineLshParam) hash(point []float32) []hashTableKey {
 	simhash := newSimhash(clsh.hyperplanes, point) // Generate the simhash for the input point.
 	hvs := make([]hashTableKey, clsh.l)            // Create a slice to hold hash keys for each of the 'l' hash tables.
 	for i := range hvs {                           // For each hash table...
@@ -141,7 +141,7 @@ type cosineLshParam struct {
 	dim         int32        // Dimensionality of the input data points.
 	l           int32         // Number of hash tables to use.
 	m           int32         // Number of hash functions (hyperplanes) used in each hash table to create a hash key.
-	hyperplanes [][]float64 // The set of randomly generated hyperplanes used for hashing.
+	hyperplanes [][]float32 // The set of randomly generated hyperplanes used for hashing.
 	h           int32         // Total number of hyperplanes (l * m).
 	dFunc       string      // Function to calculate the distance between vectors.
 }
@@ -152,7 +152,7 @@ type cosineLshParam struct {
 // m: Number of hash functions per table.
 // h: Total number of hash functions.
 // hyperplanes: Pre-generated hyperplanes.
-func newCosineLshParam(dim, l, m, h int32, dFunc string, hyperplanes [][]float64) *cosineLshParam {
+func newCosineLshParam(dim, l, m, h int32, dFunc string, hyperplanes [][]float32) *cosineLshParam {
 	return &cosineLshParam{
 		dim:         dim,         // Set the dimensionality.
 		l:           l,           // Set the number of hash tables.
@@ -184,7 +184,7 @@ func NewCosineLsh(dim, l, m int32, dfunc string) *CosineLsh {
 // Insert adds a new data point to the Cosine LSH index.
 // point is the data point (vector) to be inserted.
 // extraData is any additional data to be stored with the point.
-func (lsh *CosineLsh) Insert(point []float64, extraData string) {
+func (lsh *CosineLsh) Insert(point []float32, extraData string) {
 	// Apply hash functions to generate hash keys for the point in each hash table.
 	hvs := lsh.toBasicHashTableKeys(lsh.hash(point))
 	// Insert the point into all hash tables.
@@ -208,7 +208,7 @@ func (lsh *CosineLsh) Insert(point []float64, extraData string) {
 // Delete removes a new data point from the Cosine LSH index.
 // point is the data point (vector) to be removed.
 // extraData is any additional data which is stored with the point.
-func (lsh *CosineLsh) Delete(point []float64, extraData string) {
+func (lsh *CosineLsh) Delete(point []float32, extraData string) {
 	// Apply hash functions to generate hash keys for the point in each hash table.
 	hvs := lsh.toBasicHashTableKeys(lsh.hash(point))
 	var wg sync.WaitGroup         // WaitGroup to manage concurrent insertions into hash tables.
@@ -216,7 +216,7 @@ func (lsh *CosineLsh) Delete(point []float64, extraData string) {
 	for i := range lsh.tables { // Iterate through each hash table.
 		hv := hvs[i]                          // Get the hash key for the current hash table.
 		table := lsh.tables[i]              // Get the current hash table.
-		go func(table hashTable, hv uint64, point []float64, extraData string) { // Launch a goroutine for concurrent deletion.
+		go func(table hashTable, hv uint64, point []float32, extraData string) { // Launch a goroutine for concurrent deletion.
 			defer wg.Done() // Decrement WaitGroup counter when the goroutine finishes.
 		
 			// Check if a bucket exists for this hash key in the table.
@@ -243,7 +243,7 @@ func (lsh *CosineLsh) Delete(point []float64, extraData string) {
 }
 
 
-func (lsh *CosineLsh) Lookup(point []float64, extraData string) (bool) {
+func (lsh *CosineLsh) Lookup(point []float32, extraData string) (bool) {
 	// Apply hash functions to generate hash keys for the point in each hash table.
 	hvs := lsh.toBasicHashTableKeys(lsh.hash(point))
 	for i := range lsh.tables { // Iterate through each hash table.
@@ -266,7 +266,7 @@ func (lsh *CosineLsh) Lookup(point []float64, extraData string) (bool) {
 
 
 // Helper function to check if two vectors are equal
-func vectorsEqual(a, b []float64) bool {
+func vectorsEqual(a, b []float32) bool {
     if len(a) != len(b) {
         return false
     }
@@ -281,7 +281,7 @@ func vectorsEqual(a, b []float64) bool {
 // Query finds the approximate nearest neighbors of a query point.
 // q is the query point (vector).
 // maxResult is the maximum number of results to return (if > 0, returns top 'maxResult' nearest neighbours).
-func (lsh *CosineLsh) Search(q []float64, maxResult int) []QueryResult {
+func (lsh *CosineLsh) Search(q []float32, maxResult int) []QueryResult {
 	// Apply hash functions to the query point to get hash keys for each hash table.
 	hvs := lsh.toBasicHashTableKeys(lsh.hash(q))
 	// Keep track of points seen to avoid duplicates (across different hash tables).

@@ -15,7 +15,7 @@ import (
 )
 
 var vectorDb *db.Db
-var vectorClient *client.GeminiClient
+var vectorClient client.Client
 var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		runInteractiveMode()
@@ -148,7 +148,7 @@ func runInteractiveMode() {
 
 func Execute() {
 	vectorClient = client.NewGeminiClient()
-	vectorDb = db.NewVectorDb(vectorClient)
+	vectorDb = db.NewVectorDbWithClient(vectorClient)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

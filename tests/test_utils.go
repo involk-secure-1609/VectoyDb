@@ -2,10 +2,10 @@ package tests
 
 import "math/rand/v2"
 
-func generateRandomFloat64Array(n int) []float64 {
-	arr := make([]float64, n)
+func generateRandomFloat32Array(n int) []float32 {
+	arr := make([]float32, n)
 	for i := range n {
-		arr[i] = rand.Float64() // Generate random float64 between 0.0 and 1.0
+		arr[i] = rand.Float32() // Generate random float64 between 0.0 and 1.0
 	}
 	return arr
 }

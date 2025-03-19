@@ -23,7 +23,7 @@ func (hnswStore *HnswStore) initialize(storeName string){
 		hnswStore.store[storeName]=hnsw.NewHNSWGraph[string]("")
 	}
 }
-func (hnswStore *HnswStore) Search(storeName string,query []float64, limit int) ([]string,error) {
+func (hnswStore *HnswStore) Search(storeName string,query []float32, limit int) ([]string,error) {
 	hnswStore.initialize(storeName)
 	neighborNodes:=hnswStore.store[storeName].Search(query,limit)
 	neighbors:=make([]string,0)
@@ -34,14 +34,14 @@ func (hnswStore *HnswStore) Search(storeName string,query []float64, limit int) 
 	return neighbors,nil
 }
 
-func (hnswStore *HnswStore) Insert(storeName string,embedding []float64,key string) (error){
+func (hnswStore *HnswStore) Insert(storeName string,embedding []float32,key string) (error){
 	hnswStore.initialize(storeName)
 	hnswStore.store[storeName].Insert(hnsw.Node[string]{Key: key,Embed: embedding})
 	return nil
 }
 
 
-func (hnswStore *HnswStore) Lookup(storeName string,embedding []float64,key string) ([]float64,error) {
+func (hnswStore *HnswStore) Lookup(storeName string,embedding []float32,key string) ([]float32,error) {
 	hnswStore.initialize(storeName)
 	embeddingFound,present:=hnswStore.store[storeName].Lookup(key)
 	if !present{
@@ -50,7 +50,7 @@ func (hnswStore *HnswStore) Lookup(storeName string,embedding []float64,key stri
 	return embeddingFound,nil
 }
 
-func (hnswStore *HnswStore) Delete(storeName string,embdedding []float64,key string) (bool,error) {
+func (hnswStore *HnswStore) Delete(storeName string,embdedding []float32,key string) (bool,error) {
 	hnswStore.initialize(storeName)
 	deleted:=hnswStore.store[storeName].Delete(key);
 	return deleted,nil

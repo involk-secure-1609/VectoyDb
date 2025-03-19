@@ -20,10 +20,10 @@ func TestLshStoreInsertLookup(t *testing.T) {
 	lshStore, err := store.NewLshStore()
 	assert.NoError(t, err)
 
-	embeddings := make([][]float64, 0)
+	embeddings := make([][]float32, 0)
 	// Insert embeddings for each letter
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		embeddings = append(embeddings, embedding)
 		err := lshStore.Insert(storeName, embedding, string(i))
 		assert.NoError(t, err)
@@ -49,7 +49,7 @@ func TestLshStoreInsertDelete(t *testing.T) {
 
 	// Insert a single embedding
 	key := "a"
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	err = lshStore.Insert(storeName, embedding, key)
 	assert.NoError(t, err)
 
@@ -75,13 +75,13 @@ func TestLshStoreSearch(t *testing.T) {
 
 	// Insert multiple embeddings
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := lshStore.Insert(storeName, embedding, string(i))
 		assert.NoError(t, err)
 	}
 
 	// Search for nearest neighbors
-	query := generateRandomFloat64Array(8)
+	query := generateRandomFloat32Array(8)
 	_, err = lshStore.Search(storeName, query, 5)
 	assert.NoError(t, err)
 	// LSH might return fewer or more results based on hash collisions
@@ -90,7 +90,7 @@ func TestLshStoreSearch(t *testing.T) {
 	// With fewer items than limit
 	smallStoreName := "small_store"
 
-	err = lshStore.Insert(smallStoreName, generateRandomFloat64Array(8), "a")
+	err = lshStore.Insert(smallStoreName, generateRandomFloat32Array(8), "a")
 	assert.NoError(t, err)
 
 	_, err = lshStore.Search(smallStoreName, query, 5)
@@ -106,9 +106,9 @@ func TestLshStoreSaveLoad(t *testing.T) {
 	defer os.Remove(storeName + "_lsh" + ".store")
 
 	// Insert embeddings
-	embeddings := make([][]float64, 5)
+	embeddings := make([][]float32, 5)
 	for i := range 5 {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		embeddings[i] = embedding
 		err := lshStore.Insert(storeName, embedding, string(rune('a'+i)))
 		assert.NoError(t, err)
@@ -148,17 +148,17 @@ func TestLshStoreMultipleStores(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Insert different embeddings in different stores
-	embeddings1 := make([][]float64, 5)
+	embeddings1 := make([][]float32, 5)
 	for i := 0; i < 5; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		embeddings1[i] = embedding
 		err := lshStore.Insert(store1, embedding, string(rune('a'+i)))
 		assert.NoError(t, err)
 	}
 
-	embeddings2 := make([][]float64, 5)
+	embeddings2 := make([][]float32, 5)
 	for i := 0; i < 5; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		embeddings2[i] = embedding
 		err := lshStore.Insert(store2, embedding, string(rune('v'+i)))
 		assert.NoError(t, err)

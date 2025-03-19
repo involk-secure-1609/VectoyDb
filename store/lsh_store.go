@@ -23,7 +23,7 @@ func (lshStore *LshStore) initialize(storeName string){
 	}
 }
 
-func (lshStore *LshStore) Search(storeName string,query []float64, limit int) ([]string,error) {
+func (lshStore *LshStore) Search(storeName string,query []float32, limit int) ([]string,error) {
 	lshStore.initialize(storeName)
 	searchResults:=lshStore.store[storeName].Search(query,limit)
 	results:=make([]string,0)
@@ -34,14 +34,14 @@ func (lshStore *LshStore) Search(storeName string,query []float64, limit int) ([
 	return results,nil
 }
 
-func (lshStore *LshStore) Insert(storeName string,embedding []float64,key string) (error){
+func (lshStore *LshStore) Insert(storeName string,embedding []float32,key string) (error){
 	lshStore.initialize(storeName)
 	lshStore.store[storeName].Insert(embedding,key)
 	return nil
 }
 
 
-func (lshStore *LshStore) Lookup(storeName string,embedding []float64,key string) ([]float64,error) {
+func (lshStore *LshStore) Lookup(storeName string,embedding []float32,key string) ([]float32,error) {
 	lshStore.initialize(storeName)
 	present:=lshStore.store[storeName].Lookup(embedding,key)
 	if !present{
@@ -50,7 +50,7 @@ func (lshStore *LshStore) Lookup(storeName string,embedding []float64,key string
 	return embedding,nil
 }
 
-func (lshStore *LshStore) Delete(storeName string,embdedding []float64,key string) (bool,error) {
+func (lshStore *LshStore) Delete(storeName string,embdedding []float32,key string) (bool,error) {
 	lshStore.initialize(storeName)
 	lshStore.store[storeName].Delete(embdedding,key);
 	return true,nil

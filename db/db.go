@@ -6,24 +6,32 @@ import (
 )
 
 type Db struct {
-	Client *client.GeminiClient
+	Client client.Client
 	Store  store.Store
 }
 
-func NewVectorDb(client *client.GeminiClient) *Db {
+func NewVectorDbWithClient(client client.Client) *Db {
 	return &Db{Client: client}
 }
 
+func NewVectorDbWithStore(store store.Store) *Db {
+	return &Db{Store: store}
+}
 
-func (db *Db) Search(directory string, query string, limit int) ([]string, error) {
+func NewVectorDbWithClientAndStore(client client.Client,store store.Store) *Db {
+	return &Db{Client:client,Store: store}
+}
+
+
+func (db *Db) Search(storeName string, query string, limit int) ([]string, error) {
 	embedding, err := db.Client.Embed(query)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 	if limit == -1 {
 		limit = 3
 	}
-	queryResult,err := db.Store.Search(directory,Float32ToFloat64(embedding),limit)
+	queryResult,err := db.Store.Search(storeName,(embedding),limit)
 	if err!=nil{
 		return nil,err
 	}
@@ -32,34 +40,38 @@ func (db *Db) Search(directory string, query string, limit int) ([]string, error
 
 }
 
-func (db *Db) Insert(directory string, key string) error {
+func (db *Db) Insert(storeName string, key string) error {
 	embedding, err := db.Client.Embed(key)
 	if err != nil {
 		return err
 	}
-	err = db.Store.Insert(directory,Float32ToFloat64(embedding),key)
+	err = db.Store.Insert(storeName,embedding,key)
 	return err
 }
 
-// func (db *Db) Loo(directory string, key string) ([]float32, error) {
-// 	embedding, err := db.vectorStore.lookup(directory, key)
-// 	if err != nil {
-// 		return []float32{}, err
-// 	}
-// 	return embedding, nil
-// }
+func (db *Db) Lookup(storeName string, key string) ([]float32, error) {
+	embedding, err := db.Client.Embed(key)
+	if err != nil {
+		return nil, err
+	}
+	searchResult, err := db.Store.Lookup(storeName,embedding,key)
+	if err != nil {
+		return nil, err
+	}
+	return searchResult, nil
+}
 
-func (db *Db) Delete(directory string, key string) (bool, error) {
+func (db *Db) Delete(storeName string, key string) (bool, error) {
 	embedding, err := db.Client.Embed(key)
 	if err != nil {
 		return false,err
 	}
-	deleted,err := db.Store.Delete(directory,Float32ToFloat64(embedding),key)
+	deleted,err := db.Store.Delete(storeName,(embedding),key)
 	return deleted,err
 }
 
 func (db *Db) Save(storeName string) (error) {
-	err:=db.Save(storeName)
+	err:=db.Store.Save(storeName)
 	return err
 }
 

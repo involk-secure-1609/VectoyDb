@@ -24,13 +24,13 @@ func TestHnswStoreInsertLookup(t *testing.T) {
 
 	// Insert embeddings for each letter
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := hnswStore.Insert(storeName, embedding, string(i))
 		assert.NoError(t, err)
 	}
 
 
-	embedding:=make([]float64,0)
+	embedding:=make([]float32,0)
 	// Lookup each embedding
 	for i := 'a'; i <= 'z'; i++ {
 		embedding, err := hnswStore.Lookup(storeName,embedding ,string(i))
@@ -52,7 +52,7 @@ func TestHnswStoreInsertDelete(t *testing.T) {
 	
 	// Insert a single embedding
 	key := "a"
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	err = hnswStore.Insert(storeName, embedding, key)
 	assert.NoError(t, err)
 	
@@ -83,13 +83,13 @@ func TestHnswStoreSearch(t *testing.T) {
 
 	// Insert multiple embeddings
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := hnswStore.Insert(storeName, embedding, string(i))
 		assert.NoError(t, err)
 	}
 	
 	// Search for nearest neighbors
-	query := generateRandomFloat64Array(8)
+	query := generateRandomFloat32Array(8)
 	results, err := hnswStore.Search(storeName, query, 5)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, len(results), 5)
@@ -97,7 +97,7 @@ func TestHnswStoreSearch(t *testing.T) {
 	// With fewer items than limit
 	smallStoreName := "small_store"
 	
-	err = hnswStore.Insert(smallStoreName, generateRandomFloat64Array(8), "a")
+	err = hnswStore.Insert(smallStoreName, generateRandomFloat32Array(8), "a")
 	assert.NoError(t, err)
 	
 	results, err = hnswStore.Search(smallStoreName, query, 5)
@@ -114,7 +114,7 @@ func TestHnswStoreSaveLoad(t *testing.T) {
 	
 	// Insert embeddings
 	for i := 'a'; i <= 'e'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := hnswStore.Insert(storeName, embedding, string(i))
 		assert.NoError(t, err)
 	}
@@ -122,7 +122,7 @@ func TestHnswStoreSaveLoad(t *testing.T) {
 	// Save the store
 	err = hnswStore.Save(storeName)
 	assert.NoError(t, err)
-	embedding := make([]float64,0)
+	embedding := make([]float32,0)
 	// Clear the store by deleting all entries
 	for i := 'a'; i <= 'e'; i++ {
 		embedding, err := hnswStore.Lookup(storeName,embedding, string(i))
@@ -156,18 +156,18 @@ func TestHnswStoreMultipleStores(t *testing.T) {
 
 	// Insert different embeddings in different stores
 	for i := 'a'; i <= 'e'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := hnswStore.Insert(store1, embedding, string(i))
 		assert.NoError(t, err)
 	}
 	
 	for i := 'v'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		err := hnswStore.Insert(store2, embedding, string(i))
 		assert.NoError(t, err)
 	}
 	
-	embedding := make([]float64,0)
+	embedding := make([]float32,0)
 	// Verify lookups work correctly
 	_, err = hnswStore.Lookup(store1,embedding, "a")
 	assert.NoError(t, err)

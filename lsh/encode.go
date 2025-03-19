@@ -180,9 +180,9 @@ func (lsh *CosineLsh) Load(filename string) error {
 		}
 
 		// Initialize and fill hyperplanes
-		lsh.hyperplanes = make([][]float64, rows)
+		lsh.hyperplanes = make([][]float32, rows)
 		for i := int32(0); i < rows; i++ {
-			lsh.hyperplanes[i] = make([]float64, cols)
+			lsh.hyperplanes[i] = make([]float32, cols)
 			for j := int32(0); j < cols; j++ {
 				if err := binary.Read(reader, byteOrder, &lsh.hyperplanes[i][j]); err != nil {
 					return err
@@ -241,7 +241,7 @@ func (lsh *CosineLsh) Load(filename string) error {
 					}
 
 					// Initialize and fill vector
-					points[k].Vector = make([]float64, vectorLen)
+					points[k].Vector = make([]float32, vectorLen)
 					for v := int32(0); v < vectorLen; v++ {
 						if err := binary.Read(reader, byteOrder, &points[k].Vector[v]); err != nil {
 							return err

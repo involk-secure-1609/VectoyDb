@@ -1,36 +1,5 @@
 package db
 
-
-// func checkIfOllamaServerRunning(baseUrl string) bool {
-
-// 	conn, err := net.Dial("tcp", baseUrl)
-// 	if err != nil {
-// 		log.Println("OLLAMA server is not running")
-// 		return false
-// 	}
-
-// 	conn.Close()
-// 	log.Println("Ollama server is running")
-// 	return true
-// }
-
-// func embeddingResponseProcessor(response *http.Response, err error) ([]float32, error) {
-// 	if err != nil {
-// 		log.Println(err)
-// 		return []float32{}, err
-// 	}
-
-// 	// 1. Unmarshal the JSON data into the EmbedResponsePayload struct
-// 	var responsePayload EmbedResponsePayload
-// 	decoder := json.NewDecoder(response.Body) // Create a decoder that reads from the response body
-// 	err = decoder.Decode(&responsePayload)
-// 	if err != nil {
-// 		log.Println(err)
-// 		return []float32{}, err
-// 	}
-// 	return responsePayload.Embeddings[0], err
-// }
-
 func Float32ToFloat64(float32Slice []float32) []float64 {
     float64Slice := make([]float64, len(float32Slice))
     for i, val := range float32Slice {

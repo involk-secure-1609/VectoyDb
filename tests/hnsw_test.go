@@ -12,7 +12,7 @@ import (
 // Tests the Dims and Len function
 func TestHNSWInsertDimLen(t *testing.T) {
 	hnswGraph := hnsw.NewHNSWGraph[string]("")
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	node := hnsw.MakeNode[string]("a", embedding)
 
 	hnswGraph.Insert(node)
@@ -29,7 +29,7 @@ func TestHNSWInsertDimLen(t *testing.T) {
 func TestHNSWInsertLookup(t *testing.T) {
 	hnswGraph := hnsw.NewHNSWGraph[string]("")
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		node := hnsw.MakeNode[string](string(i), embedding)
 		hnswGraph.Insert(node)
 	}
@@ -46,7 +46,7 @@ func TestHNSWInsertLookup(t *testing.T) {
 // Tests the Insert and Delete functionality
 func TestHNSWInsertDelete(t *testing.T) {
 	hnswGraph := hnsw.NewHNSWGraph[string]("")
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	node := hnsw.MakeNode[string]("a", embedding)
 
 	deleted := hnswGraph.Delete(node.Key)
@@ -82,7 +82,7 @@ func TestHNSWInsertSave(t *testing.T) {
 	testFile := "test"
 	defer os.Remove(testFile + "_hnsw" + ".store")
 
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	node := hnsw.MakeNode[string]("a", embedding)
 	hnswGraph.Insert(node)
 	err := hnswGraph.Save(testFile)
@@ -95,7 +95,7 @@ func TestHNSWSaveLoad_1(t *testing.T) {
 	testFile := "test"
 	defer os.Remove(testFile + "_hnsw" + ".store")
 
-	embedding := generateRandomFloat64Array(8)
+	embedding := generateRandomFloat32Array(8)
 	// log.Println(embedding)
 	node := hnsw.MakeNode[string]("a", embedding)
 	hnswGraph.Insert(node)
@@ -120,7 +120,7 @@ func TestHNSWSaveLoad_2(t *testing.T) {
 	defer os.Remove(testFile + "_hnsw" + ".store")
 
 	for i := 'a'; i <= 'z'; i++ {
-		embedding := generateRandomFloat64Array(8)
+		embedding := generateRandomFloat32Array(8)
 		node := hnsw.MakeNode[string](string(i), embedding)
 		hnswGraph.Insert(node)
 	}

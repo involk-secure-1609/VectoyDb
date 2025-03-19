@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type Embedding []float64
+type Embedding []float32
 type Node[K cmp.Ordered] struct {
 	Key        K
 	Embed      Embedding
@@ -25,23 +25,23 @@ func MakeNode[K cmp.Ordered](key K, embed Embedding) Node[K] {
 	return Node[K]{Key: key, Embed: embed}
 }
 
-type DistanceFunc func(vec1 Embedding, vec2 Embedding) float64
+type DistanceFunc func(vec1 Embedding, vec2 Embedding) float32
 
 // EuclideanDistance computes the Euclidean distance between two vectors.
-func EuclideanDistance(a, b Embedding) float64 {
+func EuclideanDistance(a, b Embedding) float32 {
 	// TODO: can we speedup with vek?
-	var sum float64 = 0
+	var sum float32 = 0
 	for i := range a {
 		diff := a[i] - b[i]
 		sum += diff * diff
 	}
-	return float64(math.Sqrt(float64(sum)))
+	return float32(math.Sqrt(float64(sum)))
 }
 
 // EuclideanDistSquare calculates the squared Euclidean distance between two vectors.
 // It's computationally cheaper than Euclidean distance and often sufficient for comparisons.
-func EuclideanDistSquare(p1 Embedding, p2 Embedding) float64 {
-	var sum float64 = 0
+func EuclideanDistSquare(p1 Embedding, p2 Embedding) float32 {
+	var sum float32 = 0
 	for i := range p1 {
 		d := p2[i] - p1[i] // Calculate the difference between corresponding coordinates.
 		sum += d * d       // Square the difference and add to the sum.
@@ -50,9 +50,9 @@ func EuclideanDistSquare(p1 Embedding, p2 Embedding) float64 {
 }
 
 // DotProduct computes the DotProduct distance between two vectors.
-func DotProduct(vec1 Embedding, vec2 Embedding) float64 {
+func DotProduct(vec1 Embedding, vec2 Embedding) float32 {
 	// TODO: can we speedup with vek?
-	var sum float64 = 0
+	var sum float32 = 0
 	for i := range vec1 {
 		prod := vec1[i] * vec2[i]
 		sum += prod
@@ -79,7 +79,7 @@ func distanceFuncToName(fn DistanceFunc) (string, bool) {
 
 type searchCandidate[K cmp.Ordered] struct {
 	node *Node[K]
-	dist float64
+	dist float32
 }
 
 func (s searchCandidate[K]) Less(o searchCandidate[K]) bool {
@@ -171,7 +171,7 @@ func (node *Node[K]) addNeighbour(neighbor *Node[K], m int, dist DistanceFunc) {
 
 	// Find the neighbor with the worst distance.
 	var (
-		worstDist = float64(math.Inf(-1))
+		worstDist = float32(math.Inf(-1))
 		worst     *Node[K]
 	)
 	for _, neighbor := range node.neighbours {
