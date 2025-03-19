@@ -1,9 +1,9 @@
 package main
 
 import (
-	"vectorDb/cmd"
+	"vectorDb/cli"
 )
 
 func main() {
-	cmd.Execute()
+	cli.Execute()
 }
