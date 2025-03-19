@@ -6,4 +6,5 @@ type Store interface{
 	Delete(storeName string,embedding []float64,key string) (bool,error)
 	Load(storeName string) (error)
 	Save(storeName string) (error)
+	Lookup(storeName string,embedding []float64,key string) ([]float64,error)
 }
